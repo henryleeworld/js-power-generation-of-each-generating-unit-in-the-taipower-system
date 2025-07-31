@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <meta property="og:title" content="台灣電力公司系統各機組發電量" />
+        <meta property="og:description" content="根據台灣電力公司資料，台灣規劃在 2024 年到 2033 年間，逐步將燃煤機組汰換為燃氣機組，達到燃氣占比 50%。凸顯燃氣作為短期至中期內，台灣能源核心角色之一。" />
+        <meta property="og:locale" content="zh_TW" />
+        <meta property="og:type" content="website" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.7/css/bootstrap.min.css" integrity="sha512-fw7f+TcMjTb7bpbLJZlP8g2Y4XcCyFZW8uy8HsRZsH/SwbMw0plKHFHr99DN3l04VsYNwvzicUX/6qurvIxbxw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+        <link rel="stylesheet" href="css/power-generation.css" />
+        <title>台灣電力公司系統各機組發電量</title>
+    </head>
+    <body>
+        <div class="container mt-4">
+            <h1 class="mb-4">台灣電力公司系統各機組發電⚡量（單位 MW）</h1>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="button-container">
+                        <button id="autoUpdateButton" class="btn btn-primary btn-sm">自動更新</button>
+                        <div class="custom-date-picker">
+                            <div id="datePickerDisplay" class="date-input-display" title="選擇日期查看歷史資料"></div>
+                            <div id="customCalendar" class="custom-calendar">
+                                <div class="calendar-header">
+                                    <button type="button" class="calendar-nav-btn" id="prevMonth">‹</button>
+                                    <div class="calendar-month-year" id="monthYearDisplay"></div>
+                                    <button type="button" class="calendar-nav-btn" id="nextMonth">›</button>
+                                </div>
+                                <div class="calendar-grid" id="calendarGrid"></div>
+                            </div>
+                        </div>
+                        <small class="text-muted ms-2">🚨 表示緊急備用電力設施啟動日</small>
+                        <a href="https://www.taipower.com.tw/d006/loadGraph/loadGraph/genshx_.html" target="_blank" class="btn btn-outline-secondary btn-sm">資料來源</a>
+                    </div>
+                </div>
+            </div>
+            <div class="row align-items-center mb-3">
+                <div class="col-md-4 mb-2">
+                    <p id="updateTime" class="text-muted mb-0">更新時間 -</p>
+                </div>
+                <div class="col-md-8 mb-2">
+                    <div class="slider-container">
+                        <span class="slider-label slider-label-start" id="sliderStart"></span>
+                        <span class="slider-label slider-label-end" id="sliderEnd"></span>
+                        <input type="range" class="form-range" id="timeSlider" min="0" max="0" step="1" />
+                        <div id="sliderValue"></div>
+                    </div>
+                </div>
+            </div>
+            <!--<div class="row mb-3">
+                <div class="col-12">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <canvas id="totalPowerChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>-->
+            <div id="emergencyAlert" class="alert alert-warning d-none mb-3" role="alert">
+                <h5><i class="fas fa-exclamation-triangle"></i> 今日緊急備用電力設施有開啟</h5>
+                <div id="emergencyGenerators"></div>
+                <small class="text-muted">點擊查看緊急備用電力設施歷史記錄</small>
+            </div>
+            <h2 class="mt-4">各能源別即時發電量小計（每 10 分鐘更新）：</h2>
+            <p id="totalPower" class="lead">總計： - MW</p>
+            <div id="powerSources" class="mb-4"></div>
+            <div class="table-responsive">
+                <table id="powerTable" class="table table-striped table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>燃料別</th>
+                            <th>次燃料別</th>
+                            <th>機組名稱</th>
+                            <th>裝置容量（註 1）</th>
+                            <th>淨發電量（註 2）</th>
+                            <th>淨發電量/裝置容量比（%）（註 3）</th>
+                            <th>備註（註 11）</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="notes" class="mt-4"></div>
+            <div class="modal fade" id="dailyEmergencyModal" tabindex="-1" aria-labelledby="dailyEmergencyModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="dailyEmergencyModalLabel">當日緊急備用電力設施詳情</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="dailyEmergencyContent">
+                                <div class="text-center">載入中...</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                            <button type="button" class="btn btn-primary" onclick="openMonthlyEmergencyModal()">查看月度摘要</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal fade" id="emergencyModal" tabindex="-1" aria-labelledby="emergencyModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="emergencyModalLabel">緊急備用電力設施啟動歷史</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="emergencyDateRange" class="form-label">查看時間範圍:</label>
+                                    <select id="emergencyDateRange" class="form-select">
+                                        <option value="7">近 7 天</option>
+                                        <option value="30">近 30 天</option>
+                                        <option value="90">近 90 天</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="emergencyGeneratorFilter" class="form-label">設施篩選:</label>
+                                    <select id="emergencyGeneratorFilter" class="form-select">
+                                        <option value="all">全部緊急備用電力設施</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div id="emergencyTimeline" class="mb-4" style="height: 300px;">
+                                <canvas id="emergencyTimelineChart"></canvas>
+                            </div>
+                            <div id="emergencyHistory" class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>時間</th>
+                                            <th>設施名稱</th>
+                                            <th>發電量(MW)</th>
+                                            <th>啟動次數</th>
+                                            <th>持續時間</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="emergencyHistoryBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center">載入中...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-12">
+                    <canvas id="totalPowerChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha512-CQBWl4fJHWbryGE+Pc7UAxWMUMNMWzWxF4SQo9CgkJIN1kx6djDQZjh3Y8SZ1d+6I+1zze6Z7kHXO7q3UyZAWw==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js" integrity="sha512-JPcRR8yFa8mmCsfrw4TNte1ZvF1e3+1SdGMslZvmrzDYxS69J7J49vkFL8u6u8PlPJK+H3voElBtUCzaXj+6ig==" crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>
+        <script src="js/power-generation.js" defer></script>
+    </body>
+</html>
