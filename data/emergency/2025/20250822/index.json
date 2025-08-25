@@ -341,5 +341,26 @@
             "台中Gas3&amp;4"
         ],
         "count": 1
+    },
+    {
+        "time": "221000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    },
+    {
+        "time": "222000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    },
+    {
+        "time": "223000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
     }
 ]
