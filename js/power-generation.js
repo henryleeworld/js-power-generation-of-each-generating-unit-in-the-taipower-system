@@ -3,7 +3,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const emergencyApiBase = 'data/emergency';
     let updateTime;
     const dataCache = {};
+    const pumpDataCache = {};
     let dataOptions = [];
+    let currentPumpData = null;
+    let yesterdayPumpData = null;
+    let isCalculatingRemainingTime = false;
+
     let emergencyTimelineChart = null;
     let currentEmergencyData = null;
     let emergencyDatesCache = new Set();
@@ -11,14 +16,24 @@ document.addEventListener('DOMContentLoaded', function() {
     let loadedMonths = new Set();
 
     fetch(jsonUrl)
-        .then(response => response.json())
+        .then(response => {
+            return response.json();
+        })
         .then(data => {
             updateTime = data[''];
             updatePage(data);
             fetchAndPopulateSlider();
-            loadEmergencyDates();
+
+            loadEmergencyDates().then(() => {
+                checkEmergencyGenerators();
+            });
             initializeDatePicker();
-            checkEmergencyGenerators();
+
+            const [date] = updateTime.split(' ');
+            const [year, month, day] = date.split('-');
+            const Y = year;
+            const Ymd = year + month + day;
+            loadPumpData(Y, Ymd, 'latest');
         })
         .catch(error => {
             console.error('Error fetching data:', error);
@@ -27,34 +42,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let autoUpdateInterval = null;
     const autoUpdateDelay = 1000;
+    let sliderInitialized = false;
 
-    function fetchAndPopulateSlider() {
+    function fetchAndPopulateSlider(preloadedList = null) {
         const [date, time] = updateTime.split(' ');
         const [year, month, day] = date.split('-');
         const Y = year;
         const Ymd = year + month + day;
 
-        fetch(`data/genary/${Y}/${Ymd}/list.json`)
-            .then(response => response.json())
-            .then(data => {
-                dataOptions = data.sort((a, b) => a.localeCompare(b));
-                const slider = document.getElementById('timeSlider');
-                const autoUpdateButton = document.getElementById('autoUpdateButton');
-                slider.max = dataOptions.length - 1;
-                slider.value = slider.max;
-                updateSliderValue(slider.max);
-                updateSliderLabels();
+        const handleList = (list) => {
+            dataOptions = list.sort((a, b) => a.localeCompare(b));
+
+            const slider = document.getElementById('timeSlider');
+            const autoUpdateButton = document.getElementById('autoUpdateButton');
+
+            slider.max = dataOptions.length - 1;
+            slider.value = slider.max;
+
+            updateSliderValue(slider.max);
+            updateSliderLabels();
+
+            if (!sliderInitialized) {
                 slider.addEventListener('input', function() {
                     updateSliderValue(this.value);
                 });
+
                 slider.addEventListener('change', function() {
                     loadDataForIndex(this.value);
                     checkEmergencyGenerators();
                 });
+
                 autoUpdateButton.addEventListener('click', toggleAutoUpdate);
-                loadDataForIndex(slider.max);
-            })
-            .catch(error => console.error('Error fetching list.json:', error));
+                sliderInitialized = true;
+            }
+
+            loadDataForIndex(slider.max);
+        };
+
+        if (Array.isArray(preloadedList)) {
+            handleList(preloadedList);
+        } else {
+            fetch(`data/genary/${Y}/${Ymd}/list.json`)
+                .then(response => response.json())
+                .then(list => handleList(list))
+                .catch(error => console.error('Error fetching list.json:', error));
+        }
     }
 
     function toggleAutoUpdate() {
@@ -130,17 +162,299 @@ document.addEventListener('DOMContentLoaded', function() {
         const Y = year;
         const Ymd = year + month + day;
         const newDataSource = `data/genary/${Y}/${Ymd}/${selectedHis}.json`;
+        const cacheKey = `${Ymd}_${selectedHis}`;
 
-        if (dataCache[selectedHis]) {
-            updatePage(dataCache[selectedHis], isAutoUpdate);
+        if (dataCache[cacheKey]) {
+            updatePage(dataCache[cacheKey], isAutoUpdate);
+            loadPumpData(Y, Ymd, selectedHis);
         } else {
             fetch(newDataSource)
                 .then(response => response.json())
                 .then(data => {
-                    dataCache[selectedHis] = data;
+                    dataCache[cacheKey] = data;
                     updatePage(data, isAutoUpdate);
+                    loadPumpData(Y, Ymd, selectedHis);
                 })
                 .catch(error => console.error('Error fetching new data:', error));
+        }
+    }
+
+    function loadPumpData(year, ymd, selectedHis) {
+        const todayPumpUrl = `data/genary/${year}/${ymd}/pump.json`;
+
+        const currentDate = new Date(ymd.slice(0, 4), ymd.slice(4, 6) - 1, ymd.slice(6, 8));
+        const yesterday = new Date(currentDate);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayY = yesterday.getFullYear();
+        const yesterdayM = String(yesterday.getMonth() + 1).padStart(2, '0');
+        const yesterdayD = String(yesterday.getDate()).padStart(2, '0');
+        const yesterdayYmd = `${yesterdayY}${yesterdayM}${yesterdayD}`;
+        const yesterdayPumpUrl = `data/genary/${yesterdayY}/${yesterdayYmd}/pump.json`;
+
+        const pumpCacheKey = `${ymd}_pump`;
+        const yesterdayPumpCacheKey = `${yesterdayYmd}_pump`;
+
+        if (pumpDataCache[pumpCacheKey]) {
+            currentPumpData = pumpDataCache[pumpCacheKey];
+            loadYesterdayPumpData(yesterdayPumpUrl, yesterdayPumpCacheKey);
+        } else {
+            fetch(todayPumpUrl)
+                .then(response => response.json())
+                .then(data => {
+                    pumpDataCache[pumpCacheKey] = data;
+                    currentPumpData = data;
+                    loadYesterdayPumpData(yesterdayPumpUrl, yesterdayPumpCacheKey);
+                })
+                .catch(error => {
+                    console.warn('Error fetching today pump data:', error);
+                    currentPumpData = null;
+                    loadYesterdayPumpData(yesterdayPumpUrl, yesterdayPumpCacheKey);
+                });
+        }
+    }
+
+    function loadYesterdayPumpData(yesterdayPumpUrl, yesterdayPumpCacheKey) {
+        if (pumpDataCache[yesterdayPumpCacheKey]) {
+            yesterdayPumpData = pumpDataCache[yesterdayPumpCacheKey];
+            calculateRemainingTime();
+        } else {
+            fetch(yesterdayPumpUrl)
+                .then(response => response.json())
+                .then(data => {
+                    pumpDataCache[yesterdayPumpCacheKey] = data;
+                    yesterdayPumpData = data;
+                    calculateRemainingTime();
+                })
+                .catch(error => {
+                    console.warn('Error fetching yesterday pump data:', error);
+                    yesterdayPumpData = null;
+                    calculateRemainingTime();
+                });
+        }
+    }
+
+    function calculateRemainingTime() {
+
+        if (isCalculatingRemainingTime) {
+            return;
+        }
+
+        if (!currentPumpData || !yesterdayPumpData) {
+            return;
+        }
+
+        isCalculatingRemainingTime = true;
+
+        setTimeout(() => {
+            const tableRows = document.querySelectorAll('#powerTable tbody tr');
+
+            let storageUnitsProcessed = 0;
+
+            tableRows.forEach((row, index) => {
+                const fuelTypeCell = row.cells[0];
+                const unitNameCell = row.cells[2];
+
+                if (!fuelTypeCell || !unitNameCell) {
+                    return;
+                }
+
+                const fuelType = fuelTypeCell.textContent || fuelTypeCell.innerText;
+                const unitName = unitNameCell.textContent || unitNameCell.innerText;
+
+                if (index < 10) {}
+
+                if (fuelType.includes('儲能') || fuelType.includes('EnergyStorage')) {
+                    const cleanUnitName = unitName.trim();
+
+                    if (currentPumpData[cleanUnitName] && yesterdayPumpData[cleanUnitName]) {
+                        const todayData = currentPumpData[cleanUnitName];
+                        const yesterdayData = yesterdayPumpData[cleanUnitName];
+
+
+                        if (todayData && yesterdayData) {
+                            let remainingMinutes = 0;
+                            let mode = '';
+
+                            if (fuelType.includes('儲能') && !fuelType.includes('負載')) {
+                                const countDifference = yesterdayData.energy_storage_count - todayData.energy_storage_count;
+                                remainingMinutes = countDifference * 10;
+                                mode = 'discharge';
+                            } else if (fuelType.includes('儲能負載') || fuelType.includes('EnergyStorageLoad')) {
+                                const countDifference = yesterdayData.energy_storage_load_count - todayData.energy_storage_load_count;
+                                remainingMinutes = countDifference * 10;
+                                mode = 'charge';
+                            }
+
+                            const remainingHours = remainingMinutes / 60;
+                            const success = addRemainingTimeToUnit(cleanUnitName, remainingHours, mode, row);
+                            if (success) {
+                                storageUnitsProcessed++;
+                                const formattedTime = formatRemainingTime(remainingHours);
+                            }
+                        }
+                    } else {}
+                }
+            });
+
+            isCalculatingRemainingTime = false;
+        }, 500);
+    }
+
+
+    function calculateDischargeTime(unitName, currentOutput) {
+        const estimatedCapacityMWh = getEstimatedCapacity(unitName);
+        if (!estimatedCapacityMWh || currentOutput <= 0) return null;
+
+        let assumedCurrentLevel;
+        if (unitName === '大觀二#1' || unitName === '大觀二#2' ||
+            unitName === '大觀二#3' || unitName === '大觀二#4' ||
+            unitName === '明潭#1' || unitName === '明潭#2' ||
+            unitName === '明潭#3' || unitName === '明潭#4' ||
+            unitName === '明潭#5' || unitName === '明潭#6') {
+            assumedCurrentLevel = 0.7;
+        } else if (unitName === '電池(註16)') {
+            assumedCurrentLevel = 0.8;
+        } else {
+            assumedCurrentLevel = 0.6;
+        }
+
+        const availableCapacity = estimatedCapacityMWh * assumedCurrentLevel;
+        const remainingHours = availableCapacity / currentOutput;
+        return Math.max(0, Math.min(remainingHours, 24));
+    }
+
+    function calculateChargeTime(unitName, chargingPower) {
+        const estimatedCapacityMWh = getEstimatedCapacity(unitName);
+        if (!estimatedCapacityMWh || chargingPower <= 0) return null;
+
+        let currentLevel;
+        const targetLevel = 0.95;
+
+        if (unitName === '大觀二#1' || unitName === '大觀二#2' ||
+            unitName === '大觀二#3' || unitName === '大觀二#4' ||
+            unitName === '明潭#1' || unitName === '明潭#2' ||
+            unitName === '明潭#3' || unitName === '明潭#4' ||
+            unitName === '明潭#5' || unitName === '明潭#6') {
+            currentLevel = 0.3;
+        } else if (unitName === '電池(註16)') {
+            currentLevel = 0.2;
+        } else {
+            currentLevel = 0.3;
+        }
+
+        const remainingCapacity = estimatedCapacityMWh * (targetLevel - currentLevel);
+        const remainingHours = remainingCapacity / chargingPower;
+        return Math.max(0, Math.min(remainingHours, 24));
+    }
+
+    function getEstimatedCapacity(unitName) {
+        const capacities = {
+            '大觀二#1': 1560,
+            '大觀二#2': 1560,
+            '大觀二#3': 1560,
+            '大觀二#4': 1560,
+
+            '明潭#1': 1650,
+            '明潭#2': 1650,
+            '明潭#3': 1650,
+            '明潭#4': 1650,
+            '明潭#5': 1650,
+            '明潭#6': 1650,
+
+            '電池': 100,
+            '儲能': 50,
+        };
+
+        if (capacities[unitName]) {
+            return capacities[unitName];
+        }
+
+        for (const [key, capacity] of Object.entries(capacities)) {
+            if (unitName.includes(key)) {
+                return capacity;
+            }
+        }
+
+        return 100;
+    }
+
+    function addRemainingTimeToUnit(unitName, remainingTime, mode, targetRow) {
+        const nameCell = targetRow.cells[2];
+        const remarksCell = targetRow.cells[6];
+
+        if (nameCell && remarksCell) {
+            const cellText = nameCell.textContent || nameCell.innerText;
+            const cleanUnitName = unitName.trim();
+            const cleanCellText = cellText.trim();
+
+            if (cleanCellText === cleanUnitName) {
+                const timeText = formatRemainingTime(remainingTime);
+                let newText;
+                if (remainingTime < 0) {
+                    const modeText = mode === 'charge' ? '充電' : '放電';
+                    newText = `${modeText}${timeText}`;
+                } else {
+                    const modeText = mode === 'charge' ? '充電剩餘' : '放電剩餘';
+                    newText = `${modeText} ${timeText}`;
+                }
+
+                const existingInfo = remarksCell.querySelector('.remaining-time');
+                if (existingInfo && existingInfo.textContent === newText) {
+                    return;
+                }
+
+                if (existingInfo) {
+                    existingInfo.remove();
+                }
+
+                const originalContent = remarksCell.textContent.replace(/^.*剩餘.*$/m, '').trim();
+
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'remaining-time';
+                timeSpan.style.color = mode === 'charge' ? '#28a745' : '#dc3545';
+                timeSpan.style.fontSize = '0.9rem';
+                timeSpan.style.fontWeight = 'bold';
+                timeSpan.style.display = 'block';
+                timeSpan.textContent = newText;
+
+                remarksCell.innerHTML = '';
+                if (originalContent) {
+                    remarksCell.appendChild(document.createTextNode(originalContent));
+                    remarksCell.appendChild(document.createElement('br'));
+                }
+                remarksCell.appendChild(timeSpan);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function formatRemainingTime(hours) {
+        if (hours < 0) {
+            const absHours = Math.abs(hours);
+            if (absHours < 1) {
+                return `比昨天多 ${Math.round(absHours * 60)} 分鐘`;
+            } else if (absHours < 24) {
+                const h = Math.floor(absHours);
+                const m = Math.round((absHours - h) * 60);
+                return m > 0 ? `比昨天多 ${h}小時${m} 分鐘` : `比昨天多 ${h} 小時`;
+            } else {
+                const days = Math.floor(absHours / 24);
+                const h = Math.round(absHours % 24);
+                return h > 0 ? `比昨天多 ${days} 天 ${h} 小時` : `比昨天多 ${days} 天`;
+            }
+        } else if (hours < 1) {
+            return `${Math.round(hours * 60)} 分鐘`;
+        } else if (hours < 24) {
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            return m > 0 ? `${h} 小時 ${m} 分鐘` : `${h} 小時`;
+        } else {
+            const days = Math.floor(hours / 24);
+            const h = Math.round(hours % 24);
+            return h > 0 ? `${days} 天 ${h} 小時` : `${days} 天`;
         }
     }
 
@@ -159,6 +473,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const powerSources = processPowerSources(aaData);
         displayPowerSources(powerSources);
+
         const totalPower = calculateTotalPower(powerSources);
         const groupedData = groupPowerSources(powerSources);
 
@@ -183,8 +498,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             updateTotalPowerChart();
         }
+
         document.getElementById('totalPower').textContent = `總計： ${totalPower.toFixed(1)} MW`;
+
         displayTableData(aaData);
+
+        try {
+            calculateRemainingTime();
+        } catch (error) {
+            console.error('Error in calculateRemainingTime:', error);
+        }
+
         displayNotes();
     }
 
@@ -229,6 +553,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 groups['燃氣'] += data.output;
             } else if (['燃油', '輕油'].some(fuel => name.includes(fuel))) {
                 groups['其他火力'] += data.output;
+            } else {
+                groups['再生能源'] += data.output;
+            }
+        }
+
+        return groups;
+    }
+
+    function groupPowerSourcesForPie(powerSources) {
+        const groups = {
+            '核能': 0,
+            '火力': 0,
+            '再生能源': 0
+        };
+
+        for (const [name, data] of Object.entries(powerSources)) {
+            if (name.includes('核能')) {
+                groups['核能'] += data.output;
+            } else if (['燃煤', '汽電共生', '民營電廠-燃煤', '燃氣', '民營電廠-燃氣', '燃油', '輕油'].some(fuel => name.includes(fuel))) {
+                groups['火力'] += data.output;
             } else {
                 groups['再生能源'] += data.output;
             }
@@ -312,15 +656,20 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             col.appendChild(card);
             cardsContainer.appendChild(col);
+
             labels.push(cleanName);
             data.push(sourceData.output);
         });
+
         powerSourcesContainer.innerHTML = '';
         powerSourcesContainer.appendChild(chartsContainer);
         powerSourcesContainer.appendChild(cardsContainer);
+
         const groupedData = groupPowerSources(powerSources);
         updateBarChart(groupedData, backgroundColors);
-        updatePieChart(groupedData, backgroundColors);
+
+        const pieGroupedData = groupPowerSourcesForPie(powerSources);
+        updatePieChart(pieGroupedData, backgroundColors);
     }
 
     function updateBarChart(groupedData, backgroundColors) {
@@ -380,6 +729,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         title: {
                             display: true,
                             text: '各能源別即時發電量'
+                        },
+                        datalabels: {
+                            anchor: 'center',
+                            align: 'center',
+                            color: 'white',
+                            font: {
+                                weight: 'bold',
+                                size: 12
+                            },
+                            formatter: (value, ctx) => {
+                                const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return percentage + '%';
+                            },
+                            display: function(context) {
+                                return context.dataset.data[context.dataIndex] > 0;
+                            }
                         }
                     },
                     layout: {
@@ -388,7 +754,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             right: 0
                         }
                     }
-                }
+                },
+                plugins: [ChartDataLabels]
             });
         }
     }
@@ -468,20 +835,49 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayTableData(aaData) {
+        const emergencyGenerators = [
+            '核二Gas1', '核二Gas2', '核三Gas1', '核三Gas2',
+            '台中Gas1&2', '台中Gas3&4', '大林#5',
+            '興達#1', '興達#2', '興達#3', '興達#4'
+        ];
+
         const tableBody = document.querySelector('#powerTable tbody');
         tableBody.innerHTML = '';
         aaData.forEach(row => {
             const tr = document.createElement('tr');
-            const isSubtotal = row[2].includes('小計');
+            const generatorName = row[2];
+            const isSubtotal = generatorName.includes('小計');
+            const isEmergencyGenerator = emergencyGenerators.some(eg => generatorName.includes(eg));
+
+            let powerOutput = 0;
+            if (row[4] && row[4] !== 'N/A') {
+                const match = row[4].match(/^[\d.]+/);
+                if (match) {
+                    powerOutput = parseFloat(match[0]);
+                }
+            }
 
             if (isSubtotal) {
                 tr.classList.add('subtotal-row');
             }
 
+            if (isEmergencyGenerator) {
+                tr.classList.add('emergency-generator-row');
+                if (powerOutput > 0) {
+                    tr.classList.add('active');
+                }
+            }
+
+            let displayName = row[2];
+            if (isEmergencyGenerator) {
+                const activeText = powerOutput > 0 ? '運轉中' : '緊急備用';
+                displayName = row[2] + `<span class="emergency-indicator">${activeText}</span>`;
+            }
+
             tr.innerHTML = `
                 <td>${row[0]}</td>
                 <td>${row[1]}</td>
-                <td>${row[2]}</td>
+                <td>${displayName}</td>
                 <td>${row[3]}</td>
                 <td>${row[4]}</td>
                 <td>${row[5]}</td>
@@ -494,21 +890,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayNotes() {
         const notes = [
             '裝置容量：通常以構成該機組之原動機或發電機之設計容量（名牌所列發定額容量）稱之（取用二者中較小者），如以系統而論，則為該系統所有發電廠裝置容量之和。唯，民營電廠依購售電合約，裝置容量以各機組之簽約容量計。',
-            '淨發電量：發電廠發電機所產生之電能，電力系統上屬於公司發電廠之輸出電能。（廠毛發電量 - 廠內用電）',
-            '淨發電量高於裝置容量之說明：（1）因核能機組完成提升出力改善計畫，致實際發電能力超出原規劃裝置容量。（2）部分火力機組因機組配件升級、環境溫度較低、機組效能測試等因素之影響，致使淨發電量可能高於裝置容量，惟大多屬短暫性現象，亦不影響台灣電力公司與民營電廠之全年合約購電量。（3）本公司所購入汽電共生係為餘電收購，有淨發電量貢獻，其中垃圾及沼氣計入裝置容量，其餘不計入本公司系統裝置容量。',
+            '淨發電量：發電廠發電機所產生之電能，電力系統上屬於公司發電廠之輸出電能。(廠毛發電量 - 廠內用電)',
+            '淨發電量高於裝置容量之說明：（1）部分火力機組因機組配件升級、環境溫度較低、機組效能測試等因素之影響，致使淨發電量可能高於裝置容量，惟大多屬短暫性現象，亦不影響台電與民營電廠之全年合約購電量。（2）本公司所購入汽電共生係為餘電收購，有淨發電量貢獻，其中垃圾及沼氣計入裝置容量，其餘不計入本公司系統裝置容量。',
             '澎湖尖山：僅含澎湖本島尖山電廠。金門塔山：含大、小金門所有電廠。馬祖珠山：只含南竿、北竿及珠山等電廠。離島其他：含蘭嶼、綠島、小琉球、連江縣[馬祖]離島（東引、東莒、西莒）及澎湖縣離島（七美、望安、虎井，但不含吉貝、鳥嶼）等電廠。※顯示之發電量為毛發電量。',
-            '核能電廠全黑起動氣渦輪機，其淨尖峰能力 15.5 萬瓩，但其裝置容量不計入台灣電力公司系統裝置容量，發電量計入燃油(輕油)發電。',
-            '北部小水力: 圓山、天埤、軟橋、石圳聯通管。 中部小水力: 后里、社寮、景山、北山、濁水、湖山、南岸二。 南部小水力: 六龜、竹門。 東部小水力: 銅門、龍溪、水簾、清水、清流、初英、榕樹、溪口、東興。',
+            '核能電廠全黑起動氣渦輪機，其淨尖峰能力 15.5 萬瓩，但其裝置容量不計入台電系統裝置容量，發電量計入燃油(輕油)發電。',
+            '北部小水力: 圓山、天埤、軟橋、石圳聯通管。中部小水力: 后里、社寮、景山、北山、濁水、湖山、集集南岸。南部小水力: 六龜、竹門。東部小水力: 銅門、龍溪、水簾、清水、清流、初英、榕樹、溪口、東興。',
             '太陽能購電：所顯示之發電量係參考購電取樣發電量分區比例估算得出。購售電件數請參考本公司首頁：資訊揭露->發電資訊->購入電力概況->購入電力分布情形。',
             '淨發電量若標示為 N/A，表示無即時資訊。',
             '本網頁資料為每 10 分鐘更新，請重新整理頁面，可顯示最新資訊。',
-            '電廠（機組）換發/取得電業執照前進行測試(試運轉)等程序時，該電廠（機組）暫不計入裝置容量且不揭露其發電百分比。',
-            '備註欄補充說明：點擊見詳細說明',
-            '依高雄市環保局 108.09.20 核發之操作許可證，興達電廠 2 部燃煤機組於秋冬空品不良季節（10 月至翌年 3 月）停機，另 2 部機組平均生煤用量削減至 65%；如因用電需求指令機組升載超過 65% 時，將另於適當時機調度降載，以維持 2 部機平均負載 65% 為原則，並定期追蹤管控，以符合生煤減量之環保責任。',
-            '裝置容量 20 MW 以上且併接電壓等級 69 仟伏以上之機組單獨呈現，其餘則整併一筆資料。',
-            '大林 #5 機 111 年 12 月 31 日除役並轉為緊急備用電力設施。',
-            '興達 #1 機 112 年 9 月 30 日除役並轉為緊急備用電力設施;興達 #2 機 112 年 12 月 31 日除役並轉為緊急備用電力設施。',
-            '興達 #3、#4 機自 113 年起第一、四季不運轉，114 年起轉為備用機組，僅於第二、三季當預估供電餘裕（率）低於 8% 時啟用。',
+            '電廠(機組)換發/取得電業執照前進行測試(試運轉)等程序時，該電廠(機組)暫不計入裝置容量且不揭露其發電百分比。',
+            '備註欄補充說明：（1）水文限制：配合水資源局下游用水需求限制，或排洪排砂。（2）燃料限制：發電廠年度天然氣燃料用量限制，或儲量限制。（3）環保限制：配合環保單位年度排放限制。（4）空污減載：因應 PM2.5 環境友善降載。（5）環保停機（檢修）：本公司因應季節性區域空氣品質不良，在評估停機後，系統仍可維持供電安全，安排環保停機（檢修）。（6）運轉限制：發電機組輔機相關設備等故障限制。（7）EOH 限制：發電機組有效運轉時數（EOH）限制。（8）部分歲修：複循環發電機組部分歲修。（9）部分檢修：複循環發電機組部分檢修。（10）部分故障：複循環發電機組部分故障。（11）合約限制：與民營電廠合約（PPA）限制。（12）電源線限制：發電廠電源線安全限制。（13）機組安檢：機組依原製造廠家規定，於其運轉累計達一定時數時，須實施必要之安檢。（14）輔機檢修：相關輔機設備功能異常必須停用檢修，以致發電出力受限。（15）外溫高限制：因氣溫高機組出力受限。（16）歲修逾排程：機組歲修因設備或其他因素，超過原排程工期。（17）測試停機：機組歲、檢修後因必要測試停機或試俥機組停機。（18）測試運轉：機組歲、檢修後運轉測試，或依規定之定期降載測試。',
+            '興達#3、#4機自 113 年起第一、四季不運轉，114 年起轉為備用機組，僅於第二、三季當預估供電餘裕（率）低於 8% 時啟用。',
+            '裝置容量 20MW 以上且併接電壓等級 69 仟伏以上之機組單獨呈現，其餘則整併一筆資料。',
+            '大林#5機 111 年 12 月 31 日除役並轉為緊急備用電力設施。',
+            '興達#1機 112 年 9 月 30 日除役並轉為緊急備用電力設施;興達#2機 112 年 12 月 31 日除役並轉為緊急備用電力設施。',
             '電池係指「能量型電池儲能」，且裝置容量係指電力交易平台「電能移轉複合動態調節備轉」該小時得標容量。'
         ];
 
@@ -626,10 +1021,11 @@ document.addEventListener('DOMContentLoaded', function() {
         '燃煤': 'rgb(139, 69, 19)',
         '燃氣': 'rgb(255, 165, 0)',
         '其他火力': 'rgb(255, 205, 86)',
+        '火力': 'rgb(255, 140, 0)',
         '再生能源': 'rgb(54, 162, 235)',
-        '總發電量': 'rgb(75, 192, 192)',
-        '火力發電': 'rgb(255, 205, 86)'
+        '總發電量': 'rgb(75, 192, 192)'
     };
+
     let currentCalendarDate = new Date();
     let selectedDate = null;
     let calendarVisible = false;
@@ -638,8 +1034,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const [currentDate] = updateTime.split(' ');
         selectedDate = currentDate;
         currentCalendarDate = new Date(currentDate);
+
         initializeCustomCalendar();
         updateDateDisplay();
+
         if (emergencyDatesCache.has(currentDate)) {
             document.getElementById('datePickerDisplay').classList.add('has-emergency');
         }
@@ -650,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const calendar = document.getElementById('customCalendar');
         const prevBtn = document.getElementById('prevMonth');
         const nextBtn = document.getElementById('nextMonth');
+
         dateDisplay.addEventListener('click', () => {
             calendarVisible = !calendarVisible;
             calendar.style.display = calendarVisible ? 'block' : 'none';
@@ -657,6 +1056,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderCalendar();
             }
         });
+
         prevBtn.addEventListener('click', () => {
             currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
             ensureEmergencyDataForMonth(currentCalendarDate);
@@ -683,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const today = new Date();
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(today.getFullYear() - 1);
+
         if (selectedDate < oneYearAgo) {
             alert('所選日期太久遠，資料可能不存在。請選擇近一年內的日期。');
             return;
@@ -696,6 +1097,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const Ymd = year.toString() + month.toString().padStart(2, '0') + day.toString().padStart(2, '0');
         const jsonUrl = `data/genary/${year}/${Ymd}/list.json`;
 
+        try {
+            Object.keys(dataCache).forEach(k => delete dataCache[k]);
+        } catch (e) {}
+
         fetch(jsonUrl)
             .then(response => {
                 if (!response.ok) {
@@ -705,8 +1110,7 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(data => {
                 updateTime = `${date} 00:00`;
-                dataOptions = data.sort((a, b) => a.localeCompare(b));
-                fetchAndPopulateSlider();
+                fetchAndPopulateSlider(data);
 
                 setTimeout(() => {
                     ensureEmergencyDataForMonth(date).then(() => {
@@ -726,6 +1130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert(errorMessage + '\n請選擇其他日期。');
                 const now = new Date();
                 const today = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+
                 if (selectedDate !== today) {
                     selectedDate = today;
                     currentCalendarDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -735,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function loadEmergencyDates() {
-        fetch(`${emergencyApiBase}/monthly_index.json`)
+        return fetch(`${emergencyApiBase}/monthly_index.json`)
             .then(response => response.json())
             .then(data => {
                 emergencyMonthsData = data;
@@ -748,17 +1153,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.months && data.months.length > 0) {
                     const recentMonthsData = data.months.filter(m => recentMonths.includes(m.year_month));
                     if (recentMonthsData.length > 0) {
-                        loadEmergencyDatesFromMonthly(recentMonthsData);
+                        return loadEmergencyDatesFromMonthly(recentMonthsData);
                     } else {
                         setupDatePickerHighlights();
+                        return Promise.resolve();
                     }
                 } else {
                     setupDatePickerHighlights();
+                    return Promise.resolve();
                 }
             })
             .catch(error => {
                 console.error('Error loading emergency dates:', error);
                 setupDatePickerHighlights();
+                return Promise.resolve();
             });
     }
 
@@ -796,6 +1204,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return loadEmergencyDatesFromMonthly([monthData]);
             }
         }
+
         return Promise.resolve();
     }
 
@@ -840,7 +1249,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderCalendar() {
         const monthYearDisplay = document.getElementById('monthYearDisplay');
         const calendarGrid = document.getElementById('calendarGrid');
+
         calendarGrid.innerHTML = '';
+
         const displayedMonth = `${currentCalendarDate.getFullYear()}${(currentCalendarDate.getMonth() + 1).toString().padStart(2, '0')}`;
         if (!loadedMonths.has(displayedMonth) && emergencyMonthsData) {
             const monthData = emergencyMonthsData.months?.find(m => m.year_month === displayedMonth);
@@ -858,11 +1269,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderCalendarContent() {
         const monthYearDisplay = document.getElementById('monthYearDisplay');
         const calendarGrid = document.getElementById('calendarGrid');
+
         calendarGrid.innerHTML = '';
+
         const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
             '七月', '八月', '九月', '十月', '十一月', '十二月'
         ];
         monthYearDisplay.textContent = `${currentCalendarDate.getFullYear()}年 ${monthNames[currentCalendarDate.getMonth()]}`;
+
         const dayHeaders = ['日', '一', '二', '三', '四', '五', '六'];
         dayHeaders.forEach(day => {
             const dayElement = document.createElement('div');
@@ -870,10 +1284,12 @@ document.addEventListener('DOMContentLoaded', function() {
             dayElement.textContent = day;
             calendarGrid.appendChild(dayElement);
         });
+
         const firstDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth(), 1);
         const lastDay = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() + 1, 0);
         const daysInMonth = lastDay.getDate();
         const startingDayOfWeek = firstDay.getDay();
+
         const prevMonth = new Date(currentCalendarDate.getFullYear(), currentCalendarDate.getMonth() - 1, 0);
         for (let i = startingDayOfWeek - 1; i >= 0; i--) {
             const day = prevMonth.getDate() - i;
@@ -900,6 +1316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dayElement = document.createElement('div');
         dayElement.className = 'calendar-day';
         dayElement.textContent = day;
+
         const dateStr = `${fullDate.getFullYear()}-${(fullDate.getMonth() + 1).toString().padStart(2, '0')}-${fullDate.getDate().toString().padStart(2, '0')}`;
         const now = new Date();
         const today = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
@@ -940,14 +1357,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function selectDate(dateStr) {
         selectedDate = dateStr;
         updateDateDisplay();
+
         document.getElementById('customCalendar').style.display = 'none';
         calendarVisible = false;
+
         fetchDataForDate(dateStr);
-        setTimeout(() => {
-            ensureEmergencyDataForMonth(dateStr).then(() => {
-                checkEmergencyGeneratorsForDate(dateStr);
-            });
-        }, 500);
     }
 
     function setupDatePickerHighlights() {
@@ -959,6 +1373,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!emergencyMonthsData) {
             return Promise.resolve();
         }
+
         const requiredMonths = new Set();
         const current = new Date(startDate);
         while (current <= endDate) {
@@ -1057,11 +1472,10 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedDate = date;
             const [year, month, day] = date.split('-');
             currentCalendarDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+
             updateDateDisplay();
+
             fetchDataForDate(date);
-            setTimeout(() => {
-                checkEmergencyGenerators();
-            }, 100);
         }
     }
 
@@ -1096,21 +1510,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (dailyIndex.length > 0) {
                     const allGenerators = new Set();
                     let totalEvents = 0;
+                    let maxOutput = 0;
+                    let activeGeneratorsData = [];
 
                     dailyIndex.forEach(entry => {
                         if (entry && entry.generators && Array.isArray(entry.generators)) {
                             entry.generators.forEach(gen => allGenerators.add(gen));
                             totalEvents += entry.count || 0;
+                            if (entry.total_output) {
+                                maxOutput = Math.max(maxOutput, entry.total_output);
+                            }
                         }
                     });
 
                     if (allGenerators.size > 0) {
+                        const generatorsList = Array.from(allGenerators).map(genName => ({
+                            name: genName,
+                            output: 0,
+                            status: 'Day Total'
+                        }));
+
                         const dailySummary = {
                             date: date,
                             total_events: totalEvents,
                             time_slots: dailyIndex.length,
-                            generators: Array.from(allGenerators),
-                            daily_index: dailyIndex
+                            generators: generatorsList,
+                            daily_index: dailyIndex,
+                            max_output: maxOutput
                         };
 
                         showEmergencyAlertForDate(dailySummary);
@@ -1118,7 +1544,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const currentTimeKey = getCurrentTimeKey();
                         const currentTimeEntry = dailyIndex.find(entry => entry && entry.time === currentTimeKey);
 
-                        if (currentTimeEntry) {
+                        if (currentTimeEntry && currentTimeEntry.generators && currentTimeEntry.generators.length > 0) {
                             fetch(`${emergencyApiBase}/${year}/${Ymd}/${currentTimeKey}.json`)
                                 .then(response => response.json())
                                 .then(data => {
@@ -1177,9 +1603,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (dailySummary && dailySummary.generators && dailySummary.generators.length > 0) {
             container.innerHTML = '';
+
             if (currentTimeData && currentTimeData.active_emergency_generators && currentTimeData.active_emergency_generators.length > 0) {
                 const currentTitle = document.createElement('div');
-                currentTitle.innerHTML = '<strong>當前時段:</strong>';
+                currentTitle.innerHTML = '<strong>當前時段：</strong>';
                 currentTitle.style.marginBottom = '4px';
                 container.appendChild(currentTitle);
 
@@ -1187,26 +1614,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     const item = document.createElement('span');
                     item.className = 'emergency-generator-item';
                     item.style.backgroundColor = 'rgba(255, 193, 7, 0.3)';
-                    item.innerHTML = `${gen.name}: ${gen.output}MW <small>(${gen.status || 'Active'})</small>`;
+                    item.innerHTML = `${gen.name}：${gen.output}MW <small>(${gen.status || 'Active'})</small>`;
                     container.appendChild(item);
                 });
 
                 const separator = document.createElement('div');
-                separator.innerHTML = '<small><strong>今日所有啟動:</strong></small>';
+                separator.innerHTML = '<small><strong>今日所有啟動：</strong></small>';
                 separator.style.margin = '8px 0 4px 0';
                 container.appendChild(separator);
+            } else {
+                const dayTitle = document.createElement('div');
+                dayTitle.innerHTML = '<strong>今日緊急備用電力設施：</strong>';
+                dayTitle.style.marginBottom = '4px';
+                container.appendChild(dayTitle);
             }
 
-            dailySummary.generators.forEach(genName => {
+            dailySummary.generators.forEach(gen => {
                 const item = document.createElement('span');
                 item.className = 'emergency-generator-item';
-                item.innerHTML = `${genName}`;
+                const genName = typeof gen === 'object' ? gen.name : gen;
+                const genOutput = typeof gen === 'object' && gen.output > 0 ? `: ${gen.output}MW` : '';
+                const genStatus = typeof gen === 'object' && gen.status && gen.status !== 'Day Total' ? ` (${gen.status})` : '';
+                item.innerHTML = `${genName}${genOutput}${genStatus}`;
                 container.appendChild(item);
             });
 
             const summaryInfo = document.createElement('div');
             summaryInfo.style.marginTop = '8px';
-            summaryInfo.innerHTML = `<small>共 ${dailySummary.total_events} 次啟動，持續 ${formatTimeSlots(dailySummary.time_slots)}</small>`;
+            const maxOutputText = dailySummary.max_output > 0 ? `，最大輸出 ${dailySummary.max_output}MW` : '';
+            summaryInfo.innerHTML = `<small>共 ${dailySummary.total_events || 0} 次啟動，持續 ${formatTimeSlots(dailySummary.time_slots)} ${maxOutputText}</small>`;
             container.appendChild(summaryInfo);
 
             alert.classList.remove('d-none');
@@ -1551,7 +1987,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td colspan="5">
                                 <strong>${monthData.year} 年 ${monthData.month} 月</strong> - 
                                 找到 ${monthData.dates.length} 天包含「${generatorFilter}」的記錄
-                                (總共 ${monthData.original_total} 天)
+                                （總共 ${monthData.original_total} 天）
                             </td>
                         </tr>
                     `;
@@ -1686,7 +2122,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         generatorsText = String(dateInfo.unique_generators);
                     }
                 }
-
                 const timesCount = (dateInfo.times && Array.isArray(dateInfo.times)) ? dateInfo.times.length : 0;
                 const eventsCount = dateInfo.events || 0;
 
@@ -1722,9 +2157,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!filterSelect.hasAttribute('data-setup')) {
             const commonGenerators = [
-                '核二 Gas1', '核二 Gas2', '核三 Gas1', '核三 Gas2',
-                '台中 Gas1&2', '台中 Gas3&4', '大林 #5',
-                '興達 #1', '興達 #2', '興達 #3', '興達 #4'
+                '核二Gas1', '核二Gas2', '核三Gas1', '核三Gas2',
+                '台中Gas1&2', '台中Gas3&4', '大林#5',
+                '興達#1', '興達#2', '興達#3', '興達#4'
             ];
 
             filterSelect.innerHTML = '<option value="all">全部緊急備用電力設施</option>';
@@ -1737,8 +2172,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             dateRangeSelect.addEventListener('change', loadEmergencyHistory);
             filterSelect.addEventListener('change', loadEmergencyHistory);
+
             filterSelect.setAttribute('data-setup', 'true');
         }
+
         filterSelect.value = previousValue;
     }
 

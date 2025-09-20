@@ -49,7 +49,7 @@
                     </div>
                 </div>
             </div>
-            <!--<div class="row mb-3">
+            <!-- <div class="row mb-3">
                 <div class="col-12">
                     <div class="card shadow-sm h-100">
                         <div class="card-body">
@@ -57,7 +57,7 @@
                         </div>
                     </div>
                 </div>
-            </div>-->
+            </div> -->
             <div id="emergencyAlert" class="alert alert-warning d-none mb-3" role="alert">
                 <h5><i class="fas fa-exclamation-triangle"></i> 今日緊急備用電力設施有開啟</h5>
                 <div id="emergencyGenerators"></div>
@@ -73,16 +73,17 @@
                             <th>燃料別</th>
                             <th>次燃料別</th>
                             <th>機組名稱</th>
-                            <th>裝置容量（註 1）</th>
-                            <th>淨發電量（註 2）</th>
+                            <th>裝置容量（註 1)</th>
+                            <th>淨發電量（註 2)</th>
                             <th>淨發電量/裝置容量比（%）（註 3）</th>
-                            <th>備註（註 11）</th>
+                            <th>備註（註 11)</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
             <div id="notes" class="mt-4"></div>
+            <!-- Daily Emergency Details Modal -->
             <div class="modal fade" id="dailyEmergencyModal" tabindex="-1" aria-labelledby="dailyEmergencyModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -112,7 +113,7 @@
                         <div class="modal-body">
                             <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label for="emergencyDateRange" class="form-label">查看時間範圍:</label>
+                                    <label for="emergencyDateRange" class="form-label">查看時間範圍：</label>
                                     <select id="emergencyDateRange" class="form-select">
                                         <option value="7">近 7 天</option>
                                         <option value="30">近 30 天</option>
@@ -120,7 +121,7 @@
                                     </select>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="emergencyGeneratorFilter" class="form-label">設施篩選:</label>
+                                    <label for="emergencyGeneratorFilter" class="form-label">設施篩選：</label>
                                     <select id="emergencyGeneratorFilter" class="form-select">
                                         <option value="all">全部緊急備用電力設施</option>
                                     </select>
@@ -135,7 +136,7 @@
                                         <tr>
                                             <th>時間</th>
                                             <th>設施名稱</th>
-                                            <th>發電量(MW)</th>
+                                            <th>發電量（MW）</th>
                                             <th>啟動次數</th>
                                             <th>持續時間</th>
                                         </tr>
