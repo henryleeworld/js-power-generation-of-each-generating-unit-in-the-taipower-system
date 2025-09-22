@@ -1,0 +1,15 @@
+[
+    {
+        "date": "2025-09-18",
+        "real_load": 38998.4,
+        "real_supply": 41381.4,
+        "real_reserve_cap": 6.11
+    },
+    {
+        "date": "2025-09-19",
+        "load_low": 32521,
+        "load_high": 39494.7,
+        "supply_predict": 43641.8,
+        "comment": "114.09.19(五)22:40更新"
+    }
+]

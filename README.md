@@ -11,5 +11,5 @@ $ git clone
 ----
 
 ## 畫面截圖
-![](https://i.imgur.com/cCcQ3Q0.png)
+![](https://i.imgur.com/P46WKSE.png)
 > 台灣成為非核家園後，發電結構幾乎成了「火力全開」。火力撐起 76% 用電需求，66% 是燃氣，34% 是燃煤

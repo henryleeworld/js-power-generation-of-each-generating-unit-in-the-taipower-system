@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let updateTime;
     const dataCache = {};
     const pumpDataCache = {};
+    const reserveDataCache = {};
     let dataOptions = [];
     let currentPumpData = null;
     let yesterdayPumpData = null;
@@ -34,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const Y = year;
             const Ymd = year + month + day;
             loadPumpData(Y, Ymd, 'latest');
+            loadReserveData(Y, Ymd);
         })
         .catch(error => {
             console.error('Error fetching data:', error);
@@ -167,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dataCache[cacheKey]) {
             updatePage(dataCache[cacheKey], isAutoUpdate);
             loadPumpData(Y, Ymd, selectedHis);
+            loadReserveData(Y, Ymd);
         } else {
             fetch(newDataSource)
                 .then(response => response.json())
@@ -174,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     dataCache[cacheKey] = data;
                     updatePage(data, isAutoUpdate);
                     loadPumpData(Y, Ymd, selectedHis);
+                    loadReserveData(Y, Ymd);
                 })
                 .catch(error => console.error('Error fetching new data:', error));
         }
@@ -233,8 +237,214 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function calculateRemainingTime() {
+    function loadReserveData(year, ymd) {
+        const reserveUrl = `data/genary/${year}/reserve.json`;
+        const cacheKey = `${year}_reserve`;
+        const formattedDate = `${ymd.slice(0,4)}-${ymd.slice(4,6)}-${ymd.slice(6,8)}`;
 
+        if (reserveDataCache[cacheKey]) {
+            displayReserveData(reserveDataCache[cacheKey], formattedDate);
+        } else {
+            fetch(reserveUrl)
+                .then(response => response.json())
+                .then(data => {
+                    reserveDataCache[cacheKey] = data;
+                    displayReserveData(data, formattedDate);
+                })
+                .catch(error => {
+                    console.warn('Error fetching reserve data:', error);
+                    document.getElementById('reserveCapacity').textContent = '';
+                });
+        }
+    }
+
+    function displayReserveData(reserveData, targetDate) {
+        const reserveElement = document.getElementById('reserveCapacity');
+
+        if (reserveData && Array.isArray(reserveData)) {
+            const dayData = reserveData.find(item => item.date === targetDate);
+
+            if (dayData) {
+                window.currentReserveData = dayData;
+
+                if (dayData.supply_predict && dayData.load_high) {
+                    const supplyPredict = parseFloat(dayData.supply_predict);
+                    const loadHigh = parseFloat(dayData.load_high);
+
+                    if (!isNaN(supplyPredict) && !isNaN(loadHigh) && loadHigh > 0) {
+                        const reserveRate = ((supplyPredict - loadHigh) / loadHigh * 100).toFixed(2);
+                        reserveElement.innerHTML = `預估尖峰備轉容量率：<span style="color: ${reserveRate >= 10 ? '#28a745' : reserveRate >= 6 ? '#ffc107' : '#dc3545'};">${reserveRate}%</span>`;
+
+                        if (!reserveElement.hasAttribute('data-click-added')) {
+                            reserveElement.addEventListener('click', showReserveDetails);
+                            reserveElement.setAttribute('data-click-added', 'true');
+                        }
+                    } else {
+                        reserveElement.textContent = '';
+                    }
+                } else if (dayData.real_supply && dayData.real_load) {
+                    const realSupply = parseFloat(dayData.real_supply);
+                    const realLoad = parseFloat(dayData.real_load);
+                    const realReserveCap = parseFloat(dayData.real_reserve_cap);
+
+                    if (!isNaN(realReserveCap)) {
+                        reserveElement.innerHTML = `實際尖峰備轉容量率：<span style="color: ${realReserveCap >= 10 ? '#28a745' : realReserveCap >= 6 ? '#ffc107' : '#dc3545'};">${realReserveCap.toFixed(2)}%</span>`;
+
+                        if (!reserveElement.hasAttribute('data-click-added')) {
+                            reserveElement.addEventListener('click', showReserveDetails);
+                            reserveElement.setAttribute('data-click-added', 'true');
+                        }
+                    } else if (!isNaN(realSupply) && !isNaN(realLoad) && realSupply > 0) {
+                        const reserveRate = ((realSupply - realLoad) / realSupply * 100).toFixed(2);
+                        reserveElement.innerHTML = `實際尖峰備轉容量率：<span style="color: ${reserveRate >= 10 ? '#28a745' : reserveRate >= 6 ? '#ffc107' : '#dc3545'};">${reserveRate}%</span>`;
+
+                        if (!reserveElement.hasAttribute('data-click-added')) {
+                            reserveElement.addEventListener('click', showReserveDetails);
+                            reserveElement.setAttribute('data-click-added', 'true');
+                        }
+                    } else {
+                        reserveElement.textContent = '';
+                    }
+                } else {
+                    reserveElement.textContent = '';
+                }
+                updateReserveDetailsSection(dayData);
+            } else {
+                reserveElement.textContent = '';
+                window.currentReserveData = null;
+            }
+        } else {
+            reserveElement.textContent = '';
+            window.currentReserveData = null;
+        }
+    }
+
+    function showReserveDetails() {
+        const detailsSection = document.getElementById('reserveDetails');
+        if (detailsSection) {
+            detailsSection.scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    function updateReserveDetailsSection(dayData) {
+        if (!dayData) return;
+
+        const supplyPredictSpan = document.querySelector('#supplyPredict span');
+        const loadHighSpan = document.querySelector('#loadHigh span');
+        const loadLowSpan = document.querySelector('#loadLow span');
+        const calculatedReserveSpan = document.querySelector('#calculatedReserveRate span');
+
+        if (dayData.supply_predict) {
+            supplyPredictSpan.textContent = parseFloat(dayData.supply_predict).toLocaleString();
+        } else {
+            supplyPredictSpan.textContent = '-';
+        }
+
+        if (dayData.load_high) {
+            loadHighSpan.textContent = parseFloat(dayData.load_high).toLocaleString();
+        } else {
+            loadHighSpan.textContent = '-';
+        }
+
+        if (dayData.load_low) {
+            loadLowSpan.textContent = parseFloat(dayData.load_low).toLocaleString();
+        } else {
+            loadLowSpan.textContent = '-';
+        }
+
+        if (dayData.supply_predict && dayData.load_high) {
+            const supplyPredict = parseFloat(dayData.supply_predict);
+            const loadHigh = parseFloat(dayData.load_high);
+            if (!isNaN(supplyPredict) && !isNaN(loadHigh) && loadHigh > 0) {
+                const reserveRate = ((supplyPredict - loadHigh) / loadHigh * 100).toFixed(2);
+                calculatedReserveSpan.innerHTML = `<span style="color: ${reserveRate >= 10 ? '#28a745' : reserveRate >= 6 ? '#ffc107' : '#dc3545'};">${reserveRate}%</span>`;
+            } else {
+                calculatedReserveSpan.textContent = '-';
+            }
+        } else {
+            calculatedReserveSpan.textContent = '-';
+        }
+
+        const calculatedReserveExcludingEmergencySpan = document.querySelector('#calculatedReserveRateExcludingEmergency span');
+        if (dayData.supply_predict && dayData.load_high) {
+            const supplyPredict = parseFloat(dayData.supply_predict);
+            const loadHigh = parseFloat(dayData.load_high);
+            if (!isNaN(supplyPredict) && !isNaN(loadHigh) && loadHigh > 0) {
+                const emergencySupplySum = calculateEmergencySupplySum();
+                const reserveRateExcludingEmergency = ((supplyPredict - loadHigh - emergencySupplySum) / loadHigh * 100).toFixed(2);
+                calculatedReserveExcludingEmergencySpan.innerHTML = `<span style="color: ${reserveRateExcludingEmergency >= 10 ? '#28a745' : reserveRateExcludingEmergency >= 6 ? '#ffc107' : '#dc3545'};">${reserveRateExcludingEmergency}%</span>`;
+            } else {
+                calculatedReserveExcludingEmergencySpan.textContent = '-';
+            }
+        } else {
+            calculatedReserveExcludingEmergencySpan.textContent = '-';
+        }
+
+        const realSupplySpan = document.querySelector('#realSupply span');
+        const realLoadSpan = document.querySelector('#realLoad span');
+        const realReserveSpan = document.querySelector('#realReserveCap span');
+
+        if (dayData.real_supply) {
+            realSupplySpan.textContent = parseFloat(dayData.real_supply).toLocaleString();
+        } else {
+            realSupplySpan.textContent = '-';
+        }
+
+        if (dayData.real_load) {
+            realLoadSpan.textContent = parseFloat(dayData.real_load).toLocaleString();
+        } else {
+            realLoadSpan.textContent = '-';
+        }
+
+        if (dayData.real_reserve_cap) {
+            const realReserveCap = parseFloat(dayData.real_reserve_cap);
+            realReserveSpan.innerHTML = `<span style="color: ${realReserveCap >= 10 ? '#28a745' : realReserveCap >= 6 ? '#ffc107' : '#dc3545'};">${realReserveCap.toFixed(2)}%</span>`;
+        } else {
+            realReserveSpan.textContent = '-';
+        }
+
+        const commentRow = document.getElementById('commentRow');
+        const commentElement = document.getElementById('reserveComment');
+
+        if (dayData.comment && dayData.comment.trim()) {
+            commentElement.textContent = dayData.comment;
+            commentRow.style.display = 'block';
+        } else {
+            commentRow.style.display = 'none';
+        }
+    }
+
+    function calculateEmergencySupplySum() {
+        const emergencyGenerators = [
+            '核二Gas1', '核二Gas2', '核三Gas1', '核三Gas2',
+            '台中Gas1&2', '台中Gas3&4', '大林#5',
+            '興達#1', '興達#2', '興達#3', '興達#4'
+        ];
+
+        let emergencySupplySum = 0;
+
+        const tableBody = document.querySelector('#powerTable tbody');
+        if (!tableBody) return 0;
+
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 5) {
+                const generatorName = cells[2].textContent.trim();
+                const powerOutput = parseFloat(cells[4].textContent.replace(',', '')) || 0;
+
+                const isEmergencyGenerator = emergencyGenerators.some(eg => generatorName.includes(eg));
+                if (isEmergencyGenerator && powerOutput > 0) {
+                    emergencySupplySum += powerOutput;
+                }
+            }
+        });
+        return emergencySupplySum;
+    }
+
+    function calculateRemainingTime() {
         if (isCalculatingRemainingTime) {
             return;
         }
@@ -245,61 +455,234 @@ document.addEventListener('DOMContentLoaded', function() {
 
         isCalculatingRemainingTime = true;
 
+        const groupedToday = groupPumpDataByPrefix(currentPumpData);
+        const groupedYesterday = groupPumpDataByPrefix(yesterdayPumpData);
+
         setTimeout(() => {
+            const existingSummaryRows = document.querySelectorAll('#powerTable tbody tr.storage-summary');
+            existingSummaryRows.forEach(row => row.remove());
+
             const tableRows = document.querySelectorAll('#powerTable tbody tr');
+            const processedGroups = new Set();
+            const groupsToInsert = [];
 
-            let storageUnitsProcessed = 0;
-
-            tableRows.forEach((row, index) => {
+            for (let i = 0; i < tableRows.length; i++) {
+                const row = tableRows[i];
                 const fuelTypeCell = row.cells[0];
                 const unitNameCell = row.cells[2];
 
                 if (!fuelTypeCell || !unitNameCell) {
-                    return;
+                    continue;
                 }
 
                 const fuelType = fuelTypeCell.textContent || fuelTypeCell.innerText;
                 const unitName = unitNameCell.textContent || unitNameCell.innerText;
 
-                if (index < 10) {}
-
                 if (fuelType.includes('儲能') || fuelType.includes('EnergyStorage')) {
                     const cleanUnitName = unitName.trim();
+                    const groupKey = cleanUnitName.includes('#') ?
+                        cleanUnitName.split('#')[0] : cleanUnitName;
 
-                    if (currentPumpData[cleanUnitName] && yesterdayPumpData[cleanUnitName]) {
-                        const todayData = currentPumpData[cleanUnitName];
-                        const yesterdayData = yesterdayPumpData[cleanUnitName];
+                    const groupFuelKey = `${groupKey}_${fuelType.includes('儲能負載') ? 'load' : 'storage'}`;
+                    if (!processedGroups.has(groupFuelKey)) {
+                        if (groupedToday[groupKey] && groupedYesterday[groupKey]) {
+                            processedGroups.add(groupFuelKey);
 
+                            const todayData = groupedToday[groupKey];
+                            const yesterdayData = groupedYesterday[groupKey];
 
-                        if (todayData && yesterdayData) {
-                            let remainingMinutes = 0;
-                            let mode = '';
-
-                            if (fuelType.includes('儲能') && !fuelType.includes('負載')) {
-                                const countDifference = yesterdayData.energy_storage_count - todayData.energy_storage_count;
-                                remainingMinutes = countDifference * 10;
-                                mode = 'discharge';
-                            } else if (fuelType.includes('儲能負載') || fuelType.includes('EnergyStorageLoad')) {
-                                const countDifference = yesterdayData.energy_storage_load_count - todayData.energy_storage_load_count;
-                                remainingMinutes = countDifference * 10;
-                                mode = 'charge';
+                            let hasData = false;
+                            if (fuelType.includes('儲能負載') || fuelType.includes('EnergyStorageLoad')) {
+                                hasData = (todayData.energy_storage_load_sum !== undefined && yesterdayData.energy_storage_load_sum !== undefined);
+                            } else {
+                                hasData = (todayData.energy_storage_sum > 0 || yesterdayData.energy_storage_sum > 0);
                             }
 
-                            const remainingHours = remainingMinutes / 60;
-                            const success = addRemainingTimeToUnit(cleanUnitName, remainingHours, mode, row);
-                            if (success) {
-                                storageUnitsProcessed++;
-                                const formattedTime = formatRemainingTime(remainingHours);
+                            if (hasData) {
+                                const lastRowIndex = findLastRowOfGroup(groupKey, i);
+                                groupsToInsert.push({
+                                    afterIndex: lastRowIndex,
+                                    groupKey: groupKey,
+                                    fuelType: fuelType,
+                                    todayData: todayData,
+                                    yesterdayData: yesterdayData
+                                });
                             }
                         }
-                    } else {}
+                    }
                 }
+            }
+
+            groupsToInsert.sort((a, b) => b.afterIndex - a.afterIndex);
+            groupsToInsert.forEach(group => {
+                insertGroupSummaryRow(group.afterIndex, group.groupKey, group.fuelType, group.todayData, group.yesterdayData);
             });
 
             isCalculatingRemainingTime = false;
         }, 500);
     }
 
+    function findLastRowOfGroup(groupKey, startIndex) {
+        const tableRows = document.querySelectorAll('#powerTable tbody tr');
+        let lastIndex = startIndex;
+
+        for (let i = startIndex; i < tableRows.length; i++) {
+            const row = tableRows[i];
+            const unitNameCell = row.cells[2];
+
+            if (unitNameCell) {
+                const unitName = unitNameCell.textContent || unitNameCell.innerText;
+                const cleanUnitName = unitName.trim();
+                const currentGroupKey = cleanUnitName.includes('#') ?
+                    cleanUnitName.split('#')[0] : cleanUnitName;
+
+                if (currentGroupKey === groupKey) {
+                    lastIndex = i;
+                } else if (i > startIndex) {
+                    break;
+                }
+            }
+        }
+        return lastIndex;
+    }
+
+    function insertGroupSummaryRow(afterIndex, groupKey, fuelType, todayData, yesterdayData) {
+        const table = document.querySelector('#powerTable tbody');
+        const rows = table.rows;
+        const currentOutputSum = getCurrentOutputSumForGroup(groupKey);
+
+        let mode = '';
+        let yesterdayValue = 0;
+        let todayValue = 0;
+        let remainingHours = 0;
+
+        if (fuelType.includes('儲能') && !fuelType.includes('負載')) {
+            mode = '放電';
+            yesterdayValue = yesterdayData.energy_storage_sum;
+            todayValue = todayData.energy_storage_sum;
+
+            const sumDifference = yesterdayValue - todayValue;
+            if (Math.abs(currentOutputSum) > 0) {
+                const remainingMinutes = (sumDifference / Math.abs(currentOutputSum)) * 10;
+                remainingHours = remainingMinutes / 60;
+            } else {
+                remainingHours = 0;
+            }
+        } else if (fuelType.includes('儲能負載') || fuelType.includes('EnergyStorageLoad')) {
+            mode = '充電';
+            yesterdayValue = yesterdayData.energy_storage_load_sum;
+            todayValue = todayData.energy_storage_load_sum;
+            const sumDifference = yesterdayValue - todayValue;
+            if (Math.abs(currentOutputSum) > 0) {
+                const remainingMinutes = (sumDifference / Math.abs(currentOutputSum)) * 10;
+                remainingHours = remainingMinutes / 60;
+            } else {
+                remainingHours = 0;
+            }
+        }
+
+        const summaryRow = table.insertRow(afterIndex + 1);
+        summaryRow.className = 'storage-summary';
+        summaryRow.style.backgroundColor = '#f8f9fa';
+        summaryRow.style.borderTop = '2px solid #dee2e6';
+        summaryRow.style.fontStyle = 'italic';
+
+        const cell1 = summaryRow.insertCell(0);
+        const cell2 = summaryRow.insertCell(1);
+        const cell3 = summaryRow.insertCell(2);
+        const cell4 = summaryRow.insertCell(3);
+
+        cell1.textContent = '';
+        cell2.textContent = '';
+        cell3.textContent = `${groupKey} 統計`;
+        cell3.style.fontWeight = 'bold';
+        cell4.colSpan = 4;
+
+        const yesterdayDisplay = Math.abs(yesterdayValue).toFixed(1);
+        const todayDisplay = Math.abs(todayValue).toFixed(1);
+
+        if (mode === '充電') {
+            cell4.innerHTML = `昨天充電消耗 ${yesterdayDisplay} MW，今日充電消耗 ${todayDisplay} MW`;
+        } else {
+            const formattedTime = formatRemainingTime(remainingHours);
+            cell4.innerHTML = `昨天 ${mode} ${yesterdayDisplay} MW，今日已 ${mode} ${todayDisplay} MW, 估計剩餘 ${formattedTime}`;
+        }
+        cell4.style.color = mode === '充電' ? '#28a745' : '#dc3545';
+        cell4.style.fontWeight = 'bold';
+    }
+
+    function groupPumpDataByPrefix(pumpData) {
+        const grouped = {};
+
+        for (const [unitName, data] of Object.entries(pumpData)) {
+            const groupKey = unitName.includes('#') ? unitName.split('#')[0] : unitName;
+
+            if (!grouped[groupKey]) {
+                grouped[groupKey] = {
+                    energy_storage_sum: 0,
+                    energy_storage_count: 0,
+                    energy_storage_load_sum: 0,
+                    energy_storage_load_count: 0
+                };
+            }
+
+            if (data.energy_storage_sum !== undefined) {
+                grouped[groupKey].energy_storage_sum += data.energy_storage_sum;
+            }
+            if (data.energy_storage_count !== undefined) {
+                grouped[groupKey].energy_storage_count += data.energy_storage_count;
+            }
+            if (data.energy_storage_load_sum !== undefined) {
+                grouped[groupKey].energy_storage_load_sum += data.energy_storage_load_sum;
+            }
+            if (data.energy_storage_load_count !== undefined) {
+                grouped[groupKey].energy_storage_load_count += data.energy_storage_load_count;
+            }
+        }
+
+        return grouped;
+    }
+
+    function getCurrentOutput(unitName, row) {
+        const outputCell = row.cells[3];
+        if (outputCell) {
+            const outputText = outputCell.textContent || outputCell.innerText;
+            const outputValue = parseFloat(outputText.replace(/[^\d.-]/g, ''));
+            return isNaN(outputValue) ? 0 : outputValue;
+        }
+        return 0;
+    }
+
+    function getCurrentOutputSumForGroup(groupKey) {
+        const tableRows = document.querySelectorAll('#powerTable tbody tr');
+        let outputSum = 0;
+        let isEnergyStorageLoad = false;
+
+        tableRows.forEach(row => {
+            const unitNameCell = row.cells[2];
+            const fuelTypeCell = row.cells[0];
+            if (unitNameCell && fuelTypeCell) {
+                const unitName = unitNameCell.textContent || unitNameCell.innerText;
+                const fuelType = fuelTypeCell.textContent || fuelTypeCell.innerText;
+                const cleanUnitName = unitName.trim();
+                const unitGroupKey = cleanUnitName.includes('#') ?
+                    cleanUnitName.split('#')[0] : cleanUnitName;
+
+                if (unitGroupKey === groupKey) {
+                    const currentOutput = getCurrentOutput(cleanUnitName, row);
+
+                    if (fuelType.includes('儲能負載') || fuelType.includes('EnergyStorageLoad')) {
+                        isEnergyStorageLoad = true;
+                        outputSum += Math.abs(currentOutput);
+                    } else {
+                        outputSum += currentOutput;
+                    }
+                }
+            }
+        });
+
+        return isEnergyStorageLoad ? -outputSum : outputSum;
+    }
 
     function calculateDischargeTime(unitName, currentOutput) {
         const estimatedCapacityMWh = getEstimatedCapacity(unitName);
@@ -378,59 +761,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return 100;
     }
 
-    function addRemainingTimeToUnit(unitName, remainingTime, mode, targetRow) {
-        const nameCell = targetRow.cells[2];
-        const remarksCell = targetRow.cells[6];
-
-        if (nameCell && remarksCell) {
-            const cellText = nameCell.textContent || nameCell.innerText;
-            const cleanUnitName = unitName.trim();
-            const cleanCellText = cellText.trim();
-
-            if (cleanCellText === cleanUnitName) {
-                const timeText = formatRemainingTime(remainingTime);
-                let newText;
-                if (remainingTime < 0) {
-                    const modeText = mode === 'charge' ? '充電' : '放電';
-                    newText = `${modeText}${timeText}`;
-                } else {
-                    const modeText = mode === 'charge' ? '充電剩餘' : '放電剩餘';
-                    newText = `${modeText} ${timeText}`;
-                }
-
-                const existingInfo = remarksCell.querySelector('.remaining-time');
-                if (existingInfo && existingInfo.textContent === newText) {
-                    return;
-                }
-
-                if (existingInfo) {
-                    existingInfo.remove();
-                }
-
-                const originalContent = remarksCell.textContent.replace(/^.*剩餘.*$/m, '').trim();
-
-                const timeSpan = document.createElement('span');
-                timeSpan.className = 'remaining-time';
-                timeSpan.style.color = mode === 'charge' ? '#28a745' : '#dc3545';
-                timeSpan.style.fontSize = '0.9rem';
-                timeSpan.style.fontWeight = 'bold';
-                timeSpan.style.display = 'block';
-                timeSpan.textContent = newText;
-
-                remarksCell.innerHTML = '';
-                if (originalContent) {
-                    remarksCell.appendChild(document.createTextNode(originalContent));
-                    remarksCell.appendChild(document.createElement('br'));
-                }
-                remarksCell.appendChild(timeSpan);
-
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     function formatRemainingTime(hours) {
         if (hours < 0) {
             const absHours = Math.abs(hours);
@@ -502,6 +832,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('totalPower').textContent = `總計： ${totalPower.toFixed(1)} MW`;
 
         displayTableData(aaData);
+
+        if (window.currentReserveData) {
+            updateReserveDetailsSection(window.currentReserveData);
+        }
 
         try {
             calculateRemainingTime();
@@ -890,15 +1224,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayNotes() {
         const notes = [
             '裝置容量：通常以構成該機組之原動機或發電機之設計容量（名牌所列發定額容量）稱之（取用二者中較小者），如以系統而論，則為該系統所有發電廠裝置容量之和。唯，民營電廠依購售電合約，裝置容量以各機組之簽約容量計。',
-            '淨發電量：發電廠發電機所產生之電能，電力系統上屬於公司發電廠之輸出電能。(廠毛發電量 - 廠內用電)',
-            '淨發電量高於裝置容量之說明：（1）部分火力機組因機組配件升級、環境溫度較低、機組效能測試等因素之影響，致使淨發電量可能高於裝置容量，惟大多屬短暫性現象，亦不影響台電與民營電廠之全年合約購電量。（2）本公司所購入汽電共生係為餘電收購，有淨發電量貢獻，其中垃圾及沼氣計入裝置容量，其餘不計入本公司系統裝置容量。',
+            '淨發電量：發電廠發電機所產生之電能，電力系統上屬於公司發電廠之輸出電能。（廠毛發電量 - 廠內用電）', '淨發電量高於裝置容量之說明：（1）部分火力機組因機組配件升級、環境溫度較低、機組效能測試等因素之影響，致使淨發電量可能高於裝置容量，惟大多屬短暫性現象，亦不影響台電與民營電廠之全年合約購電量。（2）本公司所購入汽電共生係為餘電收購，有淨發電量貢獻，其中垃圾及沼氣計入裝置容量，其餘不計入本公司系統裝置容量。',
             '澎湖尖山：僅含澎湖本島尖山電廠。金門塔山：含大、小金門所有電廠。馬祖珠山：只含南竿、北竿及珠山等電廠。離島其他：含蘭嶼、綠島、小琉球、連江縣[馬祖]離島（東引、東莒、西莒）及澎湖縣離島（七美、望安、虎井，但不含吉貝、鳥嶼）等電廠。※顯示之發電量為毛發電量。',
-            '核能電廠全黑起動氣渦輪機，其淨尖峰能力 15.5 萬瓩，但其裝置容量不計入台電系統裝置容量，發電量計入燃油(輕油)發電。',
+            '核能電廠全黑起動氣渦輪機，其淨尖峰能力 15.5 萬瓩，但其裝置容量不計入台電系統裝置容量，發電量計入燃油（輕油）發電。',
             '北部小水力: 圓山、天埤、軟橋、石圳聯通管。中部小水力: 后里、社寮、景山、北山、濁水、湖山、集集南岸。南部小水力: 六龜、竹門。東部小水力: 銅門、龍溪、水簾、清水、清流、初英、榕樹、溪口、東興。',
             '太陽能購電：所顯示之發電量係參考購電取樣發電量分區比例估算得出。購售電件數請參考本公司首頁：資訊揭露->發電資訊->購入電力概況->購入電力分布情形。',
             '淨發電量若標示為 N/A，表示無即時資訊。',
             '本網頁資料為每 10 分鐘更新，請重新整理頁面，可顯示最新資訊。',
-            '電廠(機組)換發/取得電業執照前進行測試(試運轉)等程序時，該電廠(機組)暫不計入裝置容量且不揭露其發電百分比。',
+            '電廠（機組）換發/取得電業執照前進行測試（試運轉）等程序時，該電廠（機組）暫不計入裝置容量且不揭露其發電百分比。',
             '備註欄補充說明：（1）水文限制：配合水資源局下游用水需求限制，或排洪排砂。（2）燃料限制：發電廠年度天然氣燃料用量限制，或儲量限制。（3）環保限制：配合環保單位年度排放限制。（4）空污減載：因應 PM2.5 環境友善降載。（5）環保停機（檢修）：本公司因應季節性區域空氣品質不良，在評估停機後，系統仍可維持供電安全，安排環保停機（檢修）。（6）運轉限制：發電機組輔機相關設備等故障限制。（7）EOH 限制：發電機組有效運轉時數（EOH）限制。（8）部分歲修：複循環發電機組部分歲修。（9）部分檢修：複循環發電機組部分檢修。（10）部分故障：複循環發電機組部分故障。（11）合約限制：與民營電廠合約（PPA）限制。（12）電源線限制：發電廠電源線安全限制。（13）機組安檢：機組依原製造廠家規定，於其運轉累計達一定時數時，須實施必要之安檢。（14）輔機檢修：相關輔機設備功能異常必須停用檢修，以致發電出力受限。（15）外溫高限制：因氣溫高機組出力受限。（16）歲修逾排程：機組歲修因設備或其他因素，超過原排程工期。（17）測試停機：機組歲、檢修後因必要測試停機或試俥機組停機。（18）測試運轉：機組歲、檢修後運轉測試，或依規定之定期降載測試。',
             '興達#3、#4機自 113 年起第一、四季不運轉，114 年起轉為備用機組，僅於第二、三季當預估供電餘裕（率）低於 8% 時啟用。',
             '裝置容量 20MW 以上且併接電壓等級 69 仟伏以上之機組單獨呈現，其餘則整併一筆資料。',
@@ -912,7 +1245,7 @@ document.addEventListener('DOMContentLoaded', function() {
         notes.forEach((note, index) => {
             const p = document.createElement('p');
             p.className = 'note';
-            p.textContent = `註 ${index + 1}： ${note}`;
+            p.textContent = `註 ${index + 1}：${note}`;
             notesContainer.appendChild(p);
         });
     }

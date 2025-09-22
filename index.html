@@ -39,6 +39,7 @@
             <div class="row align-items-center mb-3">
                 <div class="col-md-4 mb-2">
                     <p id="updateTime" class="text-muted mb-0">更新時間 -</p>
+                    <p id="reserveCapacity" class="text-info mb-0" style="font-weight: bold; cursor: pointer; text-decoration: underline;" title="點擊查看詳細資訊"></p>
                 </div>
                 <div class="col-md-8 mb-2">
                     <div class="slider-container">
@@ -50,19 +51,20 @@
                 </div>
             </div>
             <!-- <div class="row mb-3">
-                <div class="col-12">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-body">
-                            <canvas id="totalPowerChart"></canvas>
-                        </div>
+            <div class="col-12">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <canvas id="totalPowerChart"></canvas>
                     </div>
                 </div>
-            </div> -->
+            </div>
+        </div> -->
             <div id="emergencyAlert" class="alert alert-warning d-none mb-3" role="alert">
                 <h5><i class="fas fa-exclamation-triangle"></i> 今日緊急備用電力設施有開啟</h5>
                 <div id="emergencyGenerators"></div>
                 <small class="text-muted">點擊查看緊急備用電力設施歷史記錄</small>
             </div>
+
             <h2 class="mt-4">各能源別即時發電量小計（每 10 分鐘更新）：</h2>
             <p id="totalPower" class="lead">總計： - MW</p>
             <div id="powerSources" class="mb-4"></div>
@@ -73,17 +75,53 @@
                             <th>燃料別</th>
                             <th>次燃料別</th>
                             <th>機組名稱</th>
-                            <th>裝置容量（註 1)</th>
-                            <th>淨發電量（註 2)</th>
+                            <th>裝置容量（註 1）</th>
+                            <th>淨發電量（註 2）</th>
                             <th>淨發電量/裝置容量比（%）（註 3）</th>
-                            <th>備註（註 11)</th>
+                            <th>備註（註 11）</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
+            <div id="reserveDetails" class="mt-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">電力供需詳細資訊</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-primary">預估值</h6>
+                                <div id="predictedValues">
+                                    <p id="supplyPredict" class="mb-1"><strong>今日預估淨尖峰供電能力：</strong><span>-</span> MW</p>
+                                    <p id="loadHigh" class="mb-1"><strong>今日預估尖峰負載（高）：</strong><span>-</span> MW</p>
+                                    <p id="loadLow" class="mb-1"><strong>今日預估尖峰負載（低）：</strong><span>-</span> MW</p>
+                                    <p id="calculatedReserveRate" class="mb-1 text-info"><strong>預估尖峰備轉容量率：</strong><span>-</span></p>
+                                    <p id="calculatedReserveRateExcludingEmergency" class="mb-1 text-warning"><strong>預估尖峰備轉容量率（扣除緊急）：</strong><span>-</span></p>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <h6 class="text-success">實際值</h6>
+                                <div id="actualValues">
+                                    <p id="realSupply" class="mb-1"><strong>實際淨尖峰供電能力：</strong><span>-</span> MW</p>
+                                    <p id="realLoad" class="mb-1"><strong>實際尖峰負載：</strong><span>-</span> MW</p>
+                                    <p id="realReserveCap" class="mb-1 text-success"><strong>尖峰備轉容量率：</strong><span>-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row" id="commentRow" style="display: none;">
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    <h6 class="mb-1">更新說明</h6>
+                                    <p id="reserveComment" class="mb-0 small"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div id="notes" class="mt-4"></div>
-            <!-- Daily Emergency Details Modal -->
             <div class="modal fade" id="dailyEmergencyModal" tabindex="-1" aria-labelledby="dailyEmergencyModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
