@@ -1,0 +1,71 @@
+[
+    {
+        "time": "181000",
+        "generators": [
+            "核二Gas1"
+        ],
+        "count": 1
+    },
+    {
+        "time": "182000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2"
+        ],
+        "count": 2
+    },
+    {
+        "time": "183000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2"
+        ],
+        "count": 2
+    },
+    {
+        "time": "184000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2"
+        ],
+        "count": 2
+    },
+    {
+        "time": "185000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2"
+        ],
+        "count": 2
+    },
+    {
+        "time": "190000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2"
+        ],
+        "count": 2
+    },
+    {
+        "time": "191000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2"
+        ],
+        "count": 4
+    },
+    {
+        "time": "192000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    }
+]
