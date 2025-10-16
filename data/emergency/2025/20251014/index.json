@@ -1,0 +1,608 @@
+[
+    {
+        "time": "154000",
+        "generators": [
+            "核二Gas1"
+        ],
+        "count": 1
+    },
+    {
+        "time": "155000",
+        "generators": [
+            "核二Gas1",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 5
+    },
+    {
+        "time": "160000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "161000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "162000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "163000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "164000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "164000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "165000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "165000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "171000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "171000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "171000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "171000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "180000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "180000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "182000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "182000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "182000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "185000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "190000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "190000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "190000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "192000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "192000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "195000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "200000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "200000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "202000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "202000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "204000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "204000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "210000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "211000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "212000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "213000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "214000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "215000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "220000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "221000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "222000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "223000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "224000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "225000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "230000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "231000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "232000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "232000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "233000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "234000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    },
+    {
+        "time": "235000",
+        "generators": [
+            "核二Gas1",
+            "核二Gas2",
+            "核三Gas1",
+            "核三Gas2",
+            "台中Gas1&amp;2",
+            "台中Gas3&amp;4"
+        ],
+        "count": 6
+    }
+]
