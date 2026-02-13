@@ -1,0 +1,16 @@
+[
+    {
+        "time": "030000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    },
+    {
+        "time": "031000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    }
+]
