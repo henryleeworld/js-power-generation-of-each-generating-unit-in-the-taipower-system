@@ -1,0 +1,44 @@
+[
+    {
+        "time": "172000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    },
+    {
+        "time": "173000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    },
+    {
+        "time": "174000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    },
+    {
+        "time": "175000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    },
+    {
+        "time": "180000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    },
+    {
+        "time": "181000",
+        "generators": [
+            "台中Gas3&amp;4"
+        ],
+        "count": 1
+    }
+]
