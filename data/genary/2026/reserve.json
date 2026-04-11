@@ -967,9 +967,39 @@
     },
     {
         "date": "2026-04-06",
-        "load_low": 28724,
-        "load_high": 28300,
-        "supply_predict": 31475,
-        "comment": "115.04.06(一)18:30更新"
+        "load_low": 24927,
+        "load_high": 28815.4,
+        "supply_predict": 34044.8,
+        "comment": "115.04.06(一)23:50更新",
+        "real_load": 28815.4,
+        "real_supply": 34044.8,
+        "real_reserve_cap": 18.15
+    },
+    {
+        "date": "2026-04-07",
+        "load_low": 26150,
+        "load_high": 32200,
+        "supply_predict": 37578,
+        "comment": "115.04.07(二)23:40更新",
+        "real_load": 32962,
+        "real_supply": 37342.1,
+        "real_reserve_cap": 13.29
+    },
+    {
+        "date": "2026-04-08",
+        "load_low": 26837,
+        "load_high": 33115.3,
+        "supply_predict": 38129.3,
+        "comment": "115.04.08(三)23:40更新",
+        "real_load": 33115.3,
+        "real_supply": 38129.3,
+        "real_reserve_cap": 15.14
+    },
+    {
+        "date": "2026-04-09",
+        "load_low": 31247,
+        "load_high": 34637.3,
+        "supply_predict": 40587.6,
+        "comment": "115.04.09(四)21:30更新"
     }
 ]
