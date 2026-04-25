@@ -1543,7 +1543,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function loadEmergencyDatesFromMonthly(months) {
         const promises = months.map(month =>
-            fetch(`${emergencyApiBase}/2025/${month.year_month}.json`)
+            fetch(`${emergencyApiBase}/${month.year_month.substring(0, 4)}/${month.year_month}.json`)
             .then(response => response.json())
             .then(monthData => {
                 if (monthData && monthData.dates && Array.isArray(monthData.dates) && monthData.dates.length > 0) {
@@ -1727,7 +1727,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return Promise.resolve();
             }
 
-            return fetch(`${emergencyApiBase}/2025/${yearMonth}.json`)
+            return fetch(`${emergencyApiBase}/${yearMonth.substring(0, 4)}/${yearMonth}.json`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.dates && Array.isArray(data.dates) && data.dates.length > 0) {
@@ -1782,7 +1782,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.loadMonthDetails = function(yearMonth) {
-        const monthUrl = `${emergencyApiBase}/2025/${yearMonth}.json`;
+        const monthUrl = `${emergencyApiBase}/${yearMonth.substring(0, 4)}/${yearMonth}.json`;
 
         fetch(monthUrl)
             .then(response => response.json())
@@ -2271,7 +2271,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tbody = document.getElementById('emergencyHistoryBody');
 
         const promises = months.map(month =>
-            fetch(`${emergencyApiBase}/2025/${month.year_month}.json`)
+            fetch(`${emergencyApiBase}/${month.year_month.substring(0, 4)}/${month.year_month}.json`)
             .then(response => response.json())
             .then(monthData => {
                 if (monthData && monthData.dates && Array.isArray(monthData.dates)) {
