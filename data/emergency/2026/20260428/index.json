@@ -1,0 +1,30 @@
+[
+    {
+        "time": "180000",
+        "generators": [
+            "核三Gas2"
+        ],
+        "count": 1
+    },
+    {
+        "time": "181000",
+        "generators": [
+            "核三Gas2"
+        ],
+        "count": 1
+    },
+    {
+        "time": "182000",
+        "generators": [
+            "核三Gas2"
+        ],
+        "count": 1
+    },
+    {
+        "time": "183000",
+        "generators": [
+            "核三Gas2"
+        ],
+        "count": 1
+    }
+]
