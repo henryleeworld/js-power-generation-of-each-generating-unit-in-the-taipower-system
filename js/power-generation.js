@@ -16,7 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let emergencyMonthsData = null;
     let loadedMonths = new Set();
 
-    fetch(jsonUrl)
+    const sessionTs = Date.now();
+
+    fetch(cacheBust(jsonUrl))
         .then(response => {
             return response.json();
         })
@@ -45,6 +47,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let autoUpdateInterval = null;
     const autoUpdateDelay = 1000;
     let sliderInitialized = false;
+
+    function cacheBust(url) {
+        const sep = url.includes('?') ? '&' : '?';
+        return url + sep + '_t=' + sessionTs;
+    }
 
     function fetchAndPopulateSlider(preloadedList = null) {
         const [date, time] = updateTime.split(' ');
@@ -84,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (Array.isArray(preloadedList)) {
             handleList(preloadedList);
         } else {
-            fetch(`data/genary/${Y}/${Ymd}/list.json`)
+            fetch(cacheBust(`data/genary/${Y}/${Ymd}/list.json`))
                 .then(response => response.json())
                 .then(list => handleList(list))
                 .catch(error => console.error('Error fetching list.json:', error));
@@ -171,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loadPumpData(Y, Ymd, selectedHis);
             loadReserveData(Y, Ymd);
         } else {
-            fetch(newDataSource)
+            fetch(cacheBust(newDataSource))
                 .then(response => response.json())
                 .then(data => {
                     dataCache[cacheKey] = data;
@@ -202,7 +209,7 @@ document.addEventListener('DOMContentLoaded', function() {
             currentPumpData = pumpDataCache[pumpCacheKey];
             loadYesterdayPumpData(yesterdayPumpUrl, yesterdayPumpCacheKey);
         } else {
-            fetch(todayPumpUrl)
+            fetch(cacheBust(todayPumpUrl))
                 .then(response => response.json())
                 .then(data => {
                     pumpDataCache[pumpCacheKey] = data;
@@ -222,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
             yesterdayPumpData = pumpDataCache[yesterdayPumpCacheKey];
             calculateRemainingTime();
         } else {
-            fetch(yesterdayPumpUrl)
+            fetch(cacheBust(yesterdayPumpUrl))
                 .then(response => response.json())
                 .then(data => {
                     pumpDataCache[yesterdayPumpCacheKey] = data;
@@ -245,7 +252,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (reserveDataCache[cacheKey]) {
             displayReserveData(reserveDataCache[cacheKey], formattedDate);
         } else {
-            fetch(reserveUrl)
+            fetch(cacheBust(reserveUrl))
                 .then(response => response.json())
                 .then(data => {
                     reserveDataCache[cacheKey] = data;
@@ -1434,7 +1441,7 @@ document.addEventListener('DOMContentLoaded', function() {
             Object.keys(dataCache).forEach(k => delete dataCache[k]);
         } catch (e) {}
 
-        fetch(jsonUrl)
+        fetch(cacheBust(jsonUrl))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: 此日期的資料不存在`);
@@ -1473,7 +1480,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function loadEmergencyDates() {
-        return fetch(`${emergencyApiBase}/monthly_index.json`)
+        return fetch(cacheBust(`${emergencyApiBase}/monthly_index.json`))
             .then(response => response.json())
             .then(data => {
                 emergencyMonthsData = data;
@@ -1543,7 +1550,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function loadEmergencyDatesFromMonthly(months) {
         const promises = months.map(month =>
-            fetch(`${emergencyApiBase}/${month.year_month.substring(0, 4)}/${month.year_month}.json`)
+            fetch(cacheBust(`${emergencyApiBase}/${month.year_month.substring(0, 4)}/${month.year_month}.json`))
             .then(response => response.json())
             .then(monthData => {
                 if (monthData && monthData.dates && Array.isArray(monthData.dates) && monthData.dates.length > 0) {
@@ -1727,7 +1734,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return Promise.resolve();
             }
 
-            return fetch(`${emergencyApiBase}/${yearMonth.substring(0, 4)}/${yearMonth}.json`)
+            return fetch(cacheBust(`${emergencyApiBase}/${yearMonth.substring(0, 4)}/${yearMonth}.json`))
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.dates && Array.isArray(data.dates) && data.dates.length > 0) {
@@ -1768,7 +1775,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const generatorFilter = document.getElementById('emergencyGeneratorFilter').value;
         const emergencyUrl = `${emergencyApiBase}/monthly_index.json`;
 
-        fetch(emergencyUrl)
+        fetch(cacheBust(emergencyUrl))
             .then(response => response.json())
             .then(data => {
                 displayEmergencyHistory(data, generatorFilter);
@@ -1784,7 +1791,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.loadMonthDetails = function(yearMonth) {
         const monthUrl = `${emergencyApiBase}/${yearMonth.substring(0, 4)}/${yearMonth}.json`;
 
-        fetch(monthUrl)
+        fetch(cacheBust(monthUrl))
             .then(response => response.json())
             .then(data => {
                 displayMonthDetails(data);
@@ -1828,7 +1835,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const dailyIndexUrl = `${emergencyApiBase}/${year}/${Ymd}/index.json`;
 
-        fetch(dailyIndexUrl)
+        fetch(cacheBust(dailyIndexUrl))
             .then(response => {
                 if (response.ok) {
                     return response.json();
@@ -1878,7 +1885,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         const currentTimeEntry = dailyIndex.find(entry => entry && entry.time === currentTimeKey);
 
                         if (currentTimeEntry && currentTimeEntry.generators && currentTimeEntry.generators.length > 0) {
-                            fetch(`${emergencyApiBase}/${year}/${Ymd}/${currentTimeKey}.json`)
+                            fetch(cacheBust(`${emergencyApiBase}/${year}/${Ymd}/${currentTimeKey}.json`))
                                 .then(response => response.json())
                                 .then(data => {
                                     currentEmergencyData = data;
@@ -2027,7 +2034,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const dailyIndexUrl = `${emergencyApiBase}/${year}/${Ymd}/index.json`;
 
-        fetch(dailyIndexUrl)
+        fetch(cacheBust(dailyIndexUrl))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`No data for ${date}`);
@@ -2271,7 +2278,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tbody = document.getElementById('emergencyHistoryBody');
 
         const promises = months.map(month =>
-            fetch(`${emergencyApiBase}/${month.year_month.substring(0, 4)}/${month.year_month}.json`)
+            fetch(cacheBust(`${emergencyApiBase}/${month.year_month.substring(0, 4)}/${month.year_month}.json`))
             .then(response => response.json())
             .then(monthData => {
                 if (monthData && monthData.dates && Array.isArray(monthData.dates)) {
