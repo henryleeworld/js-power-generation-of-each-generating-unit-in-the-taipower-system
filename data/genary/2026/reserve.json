@@ -2007,9 +2007,19 @@
     },
     {
         "date": "2026-07-19",
-        "load_low": 31741,
+        "load_low": 29924,
         "load_high": 33286,
         "supply_predict": 39741,
-        "comment": "115.07.19(日)22:20更新"
+        "comment": "115.07.19(日)23:50更新",
+        "real_load": 33286.6,
+        "real_supply": 39741,
+        "real_reserve_cap": 19.39
+    },
+    {
+        "date": "2026-07-20",
+        "load_low": 34949,
+        "load_high": 39248.9,
+        "supply_predict": 48749.6,
+        "comment": "115.07.20(一)20:30更新"
     }
 ]
